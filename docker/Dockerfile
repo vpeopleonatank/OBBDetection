@@ -17,12 +17,13 @@ RUN pip install mmcv-full==1.3.17 -f https://download.openmmlab.com/mmcv/dist/cu
 
 RUN conda clean --all
 RUN git clone https://github.com/vpeopleonatank/OBBDetection.git /obbdetection
-WORKDIR /obbdetection/BboxToolkit
+WORKDIR /obbdetection
 RUN git checkout dev
 ENV FORCE_CUDA="1"
-RUN pip install -e .
-WORKDIR /obbdetection
-RUN pip install cython numpy --no-cache-dir
+RUN cd BboxToolkit
+RUN python setup.py develop
+RUN cd ..
+RUN pip install cython numpy seaborn --no-cache-dir
 # RUN pip install mmpycocotools
 
 RUN pip install --no-cache-dir -e .
