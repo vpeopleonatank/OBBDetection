@@ -17,9 +17,9 @@ RUN pip install mmcv-full==1.3.17 -f https://download.openmmlab.com/mmcv/dist/cu
 
 RUN conda clean --all
 RUN git clone https://github.com/vpeopleonatank/OBBDetection.git /obbdetection
+WORKDIR /obbdetection/BboxToolkit
 RUN git checkout dev
 ENV FORCE_CUDA="1"
-WORKDIR /obbdetection/BboxToolkit
 RUN pip install -e .
 WORKDIR /obbdetection
 RUN pip install cython numpy --no-cache-dir
