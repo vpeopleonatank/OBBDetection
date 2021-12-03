@@ -14,9 +14,10 @@ RUN apt-get update && apt-get install -y ffmpeg libsm6 libxext6 git ninja-build 
 
 # Install MMCV
 RUN pip install mmcv-full==1.3.17 -f https://download.openmmlab.com/mmcv/dist/cu101/torch1.6.0/index.html
+# RUN pip install mmcv-full==1.3.9 -f https://download.openmmlab.com/mmcv/dist/cu101/torch1.6.0/index.html
 
 RUN conda clean --all
-RUN git clone https://github.com/vpeopleonatank/OBBDetection.git /obbdetection
+RUN git clone https://github.com/vpeopleonatank/OBBDetection.git --recursive /obbdetection
 WORKDIR /obbdetection
 RUN git checkout dev
 ENV FORCE_CUDA="1"
@@ -24,6 +25,6 @@ RUN cd BboxToolkit
 RUN python setup.py develop
 RUN cd ..
 RUN pip install cython numpy seaborn --no-cache-dir
-# RUN pip install mmpycocotools
+RUN pip install mmpycocotools
 
-RUN pip install --no-cache-dir -e .
+RUN pip install -v -e .
