@@ -21,9 +21,11 @@ RUN git clone https://github.com/vpeopleonatank/OBBDetection.git --recursive /ob
 WORKDIR /obbdetection
 RUN git checkout dev
 ENV FORCE_CUDA="1"
-RUN cd BboxToolkit
+# RUN cd BboxToolkit
+WORKDIR /obbdetection/BboxToolkit
 RUN python setup.py develop
-RUN cd ..
+# RUN cd ..
+WORKDIR /obbdetection
 RUN pip install cython numpy seaborn --no-cache-dir
 RUN pip install mmpycocotools
 
