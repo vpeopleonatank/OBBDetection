@@ -15,6 +15,8 @@ def main():
         '--device', default='cuda:0', help='Device used for inference')
     parser.add_argument(
         '--score-thr', type=float, default=0.3, help='bbox score threshold')
+    parser.add_argument(
+        '--out-file', type=str, default=None, help='Out file path')
     args = parser.parse_args()
 
     # build the model from a config file and a checkpoint file
@@ -24,7 +26,7 @@ def main():
     result = inference_detector_huge_image(
         model, args.img, args.split, nms_cfg)
     # show the results
-    show_result_pyplot(model, args.img, result, score_thr=args.score_thr)
+    show_result_pyplot(model, args.img, result, score_thr=args.score_thr, out_file=args.out_file)
 
 
 if __name__ == '__main__':
