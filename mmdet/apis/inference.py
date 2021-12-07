@@ -1,6 +1,7 @@
 import warnings
 
 import matplotlib.pyplot as plt
+import cv2
 import mmcv
 import torch
 from mmcv.parallel import collate, scatter
@@ -158,7 +159,7 @@ def show_result_pyplot(model, img, result, score_thr=0.3, fig_size=(15, 10), out
         model = model.module
     img = model.show_result(img, result, score_thr=score_thr, show=False)
     if out_file:
-        plt.savefig(img)
+        cv2.imwrite(out_file, img)
     plt.figure(figsize=fig_size)
     plt.imshow(mmcv.bgr2rgb(img))
     plt.show()
