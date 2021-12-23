@@ -45,7 +45,6 @@ def create_annotation_info(annotation_id, image_id, category_info, obbox, score)
     hbbox = obb2hbb(obbox).tolist()
     hbbox = [hbbox[0], hbbox[1], hbbox[2] - hbbox[0], hbbox[3] - hbbox[1]]
 
-    __import__('ipdb').set_trace()
     annotation_info = {
         "id": annotation_id,
         "image_id": image_id,
