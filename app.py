@@ -1,5 +1,7 @@
 import datetime
 from typing import List
+from functools import lru_cache
+from . import config
 
 import cv2
 from fastapi import FastAPI, File, Form, UploadFile
@@ -14,6 +16,7 @@ from mmcv.parallel import collate, scatter
 from mmdet.apis import init_detector
 from mmdet.apis.obb.huge_img_inference import LoadPatch, parse_split_cfg, get_windows, merge_patch_results
 from mmdet.datasets.pipelines import Compose
+
 
 
 def create_image_info(
@@ -74,6 +77,10 @@ meta_info = {
     "date_created": "",
 }
 
+@lru_cache()
+def get_settings():
+    return config.Settings()
+
 app = FastAPI()
 
 origins = ["*"]
@@ -89,18 +96,12 @@ app.add_middleware(
 CLASSES = ("ship",)
 
 
-CONFIG_PATH_0_5m='work_dirs/configs/faster_rcnn_orpn_r50_fpn_1x_3m_giuabien.py'
-CKPT_PATH_0_5m='work_dirs/faster_rcnn_orpn_r50_fpn_1x_3m_giuabien/epoch_6.pth'
+settings = config.Settings()
 
-CONFIG_PATH_3m='work_dirs/configs/faster_rcnn_orpn_r50_fpn_1x_3m_giuabien.py'
-SPLIT_CFG_3m = 'work_dirs/split_config/ss_test_3m_giuabien.json'
-CKPT_PATH_3m='work_dirs/faster_rcnn_orpn_r50_fpn_1x_3m_giuabien/epoch_6.pth'
-DEVICE = 'cuda:0'
-SCORE_THR = 0.5
-
-model_0_5m = init_detector(CONFIG_PATH_0_5m, CKPT_PATH_0_5m, device=DEVICE)
-model_3m = init_detector(CONFIG_PATH_3m, CKPT_PATH_3m, device=DEVICE)
-split_cfg_3m = parse_split_cfg(SPLIT_CFG_3m)
+model_0_5m = init_detector(settings.config_path_0_5m, settings.cpkt_path_0_5m, device=settings.device)
+model_3m = init_detector(settings.config_path_3m, settings.cpkt_path_3m, device=settings.device)
+split_cfg_3m = parse_split_cfg(settings.split_cfg_3m)
+split_cfg_0_5m = parse_split_cfg(settings.split_cfg_0_5m)
 
 def load_image_into_numpy_array(data):
     npimg = np.frombuffer(data, np.uint8)
@@ -177,16 +178,16 @@ async def upload_file(files: List[UploadFile] = File(...), model_type: str = For
                 ]
                 labels = np.concatenate(labels)
                 bboxes, scores = bboxes[:, :-1], bboxes[:, -1]
-                bboxes = bboxes[scores > SCORE_THR]
-                labels = labels[scores > SCORE_THR]
-                scores = scores[scores > SCORE_THR]
+                bboxes = bboxes[scores > settings.score_thr]
+                labels = labels[scores > settings.score_thr]
+                scores = scores[scores > settings.score_thr]
                 bboxes = np.concatenate([bboxes, scores[:, None]], axis=1)
                 bboxes = [bboxes[labels == i] for i in range(labels.max()+1)]
                 for i, cls_bboxes in enumerate(bboxes):
                     cls_bboxes, cls_scores = cls_bboxes[:, :-1], cls_bboxes[:, -1]
                     for j in range(len(cls_bboxes)):
                         ann = create_annotation_info(
-                            annotation_id, image_id, res["categories"][i], cls_bboxes[j], cls_scores[j] 
+                            annotation_id, image_id, res["categories"][i], cls_bboxes[j], cls_scores[j]
                         )
                         res["annotations"].append(ann)
                         annotation_id += 1
