@@ -1,7 +1,7 @@
 import datetime
 from typing import List
 from functools import lru_cache
-from . import config
+import config
 
 import cv2
 from fastapi import FastAPI, File, Form, UploadFile
