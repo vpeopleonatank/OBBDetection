@@ -132,6 +132,10 @@ def detect_huge_image(model, img, split_cfg, merge_cfg):
         data = test_pipeline(data)
         data = collate([data], samples_per_gpu=1)
         data = scatter(data, [device])[0]
+        if device != 'cpu':
+            data = scatter(data, [device])[0]
+        else:
+            data['img_metas'] = data['img_metas'][0].data
 
         # forward the model
         with torch.no_grad():
