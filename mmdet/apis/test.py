@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import time
 
+import numpy as np
 import mmcv
 import torch
 import torch.distributed as dist
@@ -16,7 +17,8 @@ def single_gpu_test(model,
                     data_loader,
                     show=False,
                     out_dir=None,
-                    show_score_thr=0.3):
+                    show_score_thr=0.3,
+                    filter_result_by_score=False):
     model.eval()
     results = []
     dataset = data_loader.dataset
@@ -55,6 +57,8 @@ def single_gpu_test(model,
             bbox_results, mask_results = result
             encoded_mask_results = encode_mask_results(mask_results)
             result = bbox_results, encoded_mask_results
+        if filter_result_by_score:
+            result = [cls_result[np.where(cls_result[:,5] > show_score_thr)] for cls_result in result]
         results.append(result)
 
         batch_size = len(data['img_metas'][0].data)

@@ -46,6 +46,10 @@ def parse_args():
         default=0.3,
         help='score threshold (default: 0.3)')
     parser.add_argument(
+        '--filter-result-by-score',
+        action='store_true',
+        help='whether to use show-score-thr to filter model \'s result or not')
+    parser.add_argument(
         '--gpu-collect',
         action='store_true',
         help='whether to use gpu to collect results.')
@@ -128,7 +132,7 @@ def main():
     if not distributed:
         model = MMDataParallel(model, device_ids=[0])
         outputs = single_gpu_test(model, data_loader, args.show, args.show_dir,
-                                  args.show_score_thr)
+                                  args.show_score_thr, args.filter_result_by_score)
     else:
         model = MMDistributedDataParallel(
             model.cuda(),
