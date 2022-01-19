@@ -205,4 +205,4 @@ async def upload_file(files: List[UploadFile] = File(...), model_type: str = For
 
 if __name__ == "__main__":
     # Run app with uvicorn with port and host specified. Host needed for docker port mapping
-    uvicorn.run(app, port=8080, host="0.0.0.0")
+    uvicorn.run(app, port=8081, host="0.0.0.0")
