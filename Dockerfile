@@ -16,10 +16,15 @@ RUN apt-get update && apt-get install -y ffmpeg libsm6 libxext6 git ninja-build 
 RUN pip install mmcv-full==1.3.17 -f https://download.openmmlab.com/mmcv/dist/cu101/torch1.6.0/index.html
 # RUN pip install mmcv-full==1.3.9 -f https://download.openmmlab.com/mmcv/dist/cu101/torch1.6.0/index.html
 
+RUN pip install pydantic fastapi python-multipart uvicorn
+
 RUN conda clean --all
-RUN git clone https://github.com/vpeopleonatank/OBBDetection.git --recursive /obbdetection
+EXPOSE 8081
+
 WORKDIR /obbdetection
-RUN git checkout dev
+
+COPY . /obbdetection
+
 ENV FORCE_CUDA="1"
 # RUN cd BboxToolkit
 WORKDIR /obbdetection/BboxToolkit
@@ -30,3 +35,5 @@ RUN pip install cython numpy seaborn --no-cache-dir
 RUN pip install mmpycocotools
 
 RUN pip install -v -e .
+
+CMD ["python", "app.py"]

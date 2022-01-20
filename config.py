@@ -2,13 +2,29 @@ from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
-    config_path_0_5m: str = "work_dirs/configs/faster_rcnn_orpn_r50_fpn_1x_3m_giuabien.py"
-    cpkt_path_0_5m: str = "work_dirs/faster_rcnn_orpn_r50_fpn_1x_3m_giuabien/epoch_6.pth"
-    split_cfg_0_5m: str = "work_dirs/split_config/ss_test_3m_giuabien.json"
+    config_05m_bien: str = "work_dirs/config/05m_bien.py"
+    cpkt_05m_bien: str = "work_dirs/cpkt/05m_bien.pth"
+    split_config_05m_bien: str = "work_dirs/split_config/05m_bien.json"
 
-    config_path_3m: str = "work_dirs/configs/faster_rcnn_orpn_r50_fpn_1x_3m_giuabien.py"
-    cpkt_path_3m: str = 'work_dirs/faster_rcnn_orpn_r50_fpn_1x_3m_giuabien/epoch_6.pth'
-    split_cfg_3m: str = "work_dirs/split_config/ss_test_3m_giuabien.json"
+    config_05m_cang: str = "work_dirs/config/05m_cang.py"
+    cpkt_05m_cang: str = "work_dirs/cpkt/05m_cang.pth"
+    split_config_05m_cang: str = "work_dirs/split_config/05m_cang.json"
+
+    config_05m_dao: str = "work_dirs/config/05m_dao.py"
+    cpkt_05m_dao: str = "work_dirs/cpkt/05m_dao.pth"
+    split_config_05m_dao: str = "work_dirs/split_config/05m_dao.json"
+
+    config_3m_bien: str = "work_dirs/config/3m_bien.py"
+    cpkt_3m_bien: str = "work_dirs/cpkt/3m_bien.pth"
+    split_config_3m_bien: str = "work_dirs/split_config/3m_bien.json"
+
+    config_3m_cang: str = "work_dirs/config/3m_cang.py"
+    cpkt_3m_cang: str = "work_dirs/cpkt/3m_cang.pth"
+    split_config_3m_cang: str = "work_dirs/split_config/3m_cang.json"
+
+    config_3m_dao: str = "work_dirs/config/3m_dao.py"
+    cpkt_3m_dao: str = "work_dirs/cpkt/3m_dao.pth"
+    split_config_3m_dao: str = "work_dirs/split_config/3m_dao.json"
 
     device: str = "cuda:0"
 

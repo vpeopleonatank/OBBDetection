@@ -1,4 +1,4 @@
-FROM vpeopleonatank/obbdetection:latest
+FROM vpeopleonatank/new_obbdetect:latest
 
 RUN pip install pydantic fastapi python-multipart uvicorn
 

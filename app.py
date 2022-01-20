@@ -98,10 +98,25 @@ CLASSES = ("ship",)
 
 settings = config.Settings()
 
-model_0_5m = init_detector(settings.config_path_0_5m, settings.cpkt_path_0_5m, device=settings.device)
-model_3m = init_detector(settings.config_path_3m, settings.cpkt_path_3m, device=settings.device)
-split_cfg_3m = parse_split_cfg(settings.split_cfg_3m)
-split_cfg_0_5m = parse_split_cfg(settings.split_cfg_0_5m)
+
+#=========================================== Model ====================================================
+model_05m_bien = init_detector(settings.config_05m_bien, settings.cpkt_05m_bien, device=settings.device)
+model_05m_cang = init_detector(settings.config_05m_cang, settings.cpkt_05m_cang, device=settings.device)
+model_05m_dao = init_detector(settings.config_05m_dao, settings.cpkt_05m_dao, device=settings.device)
+
+model_3m_bien = init_detector(settings.config_3m_bien, settings.cpkt_3m_bien, device=settings.device)
+model_3m_cang = init_detector(settings.config_3m_cang, settings.cpkt_3m_cang, device=settings.device)
+model_3m_dao = init_detector(settings.config_3m_dao, settings.cpkt_3m_dao, device=settings.device)
+
+#=========================================== Split Config ====================================================
+split_config_05m_bien = parse_split_cfg(settings.split_config_05m_bien)
+split_config_05m_dao = parse_split_cfg(settings.split_config_05m_dao)
+split_config_05m_cang = parse_split_cfg(settings.split_config_05m_cang)
+
+split_config_3m_bien = parse_split_cfg(settings.split_config_3m_bien)
+split_config_3m_dao = parse_split_cfg(settings.split_config_3m_dao)
+split_config_3m_cang = parse_split_cfg(settings.split_config_3m_cang)
+
 
 def load_image_into_numpy_array(data):
     npimg = np.frombuffer(data, np.uint8)
@@ -115,7 +130,7 @@ def detect_huge_image(model, img, split_cfg, merge_cfg):
     """
     cfg = model.cfg
     device = next(model.parameters()).device  # model device
-    # build the data pipeline
+    # build themodel_0_5m data pipeline
     test_pipeline = [LoadPatch()] + cfg.data.test.pipeline[1:]
     test_pipeline = Compose(test_pipeline)
 
@@ -147,18 +162,30 @@ def detect_huge_image(model, img, split_cfg, merge_cfg):
 
 
 @app.post("/detectship")
-async def upload_file(files: List[UploadFile] = File(...), model_type: str = Form(...)):
+async def upload_file(files: List[UploadFile] = File(...), model_type: str = Form(...), area_type: str = Form(...)):
     res = {"info": meta_info, "images": [], "annotations": [], "categories": []}
 
     #model: DetectorModel
-    if model_type == "0_5m":
-        model = model_0_5m
-        split_cfg = split_cfg_3m
-    elif model_type == "3m":
-        model = model_3m
-        split_cfg = split_cfg_3m
+    if model_type == "0.5m" and area_type == "bien":
+        model = model_05m_bien
+        split_cfg = split_config_05m_bien
+    elif model_type == "0.5m" and area_type == "cang":
+        model = model_05m_cang
+        split_cfg = split_config_05m_cang
+    elif model_type == "0.5m" and area_type == "dao":
+        model = model_05m_dao
+        split_cfg = split_config_05m_dao
+    elif model_type == "3m" and area_type == "bien":
+        model = model_3m_bien
+        split_cfg = split_config_3m_bien
+    elif model_type == "3m" and area_type == "cang":
+        model = model_3m_cang
+        split_cfg = split_config_3m_cang
+    elif model_type == "3m" and area_type == "dao":
+        model = model_3m_dao
+        split_cfg = split_config_3m_dao
     else:
-        return { "error": "specify model_type: 0_5m or 3m" }
+        return { "error": "specify model_type: 0.5m or 3m; and area_type: bien or cang or dao" }
     try:
         nms_cfg = dict(type='BT_nms', iou_thr=0.5)
         for i, name in enumerate(CLASSES):
