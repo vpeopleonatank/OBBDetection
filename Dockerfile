@@ -32,7 +32,7 @@ RUN python setup.py develop
 # RUN cd ..
 WORKDIR /obbdetection
 RUN pip install cython numpy seaborn --no-cache-dir
-RUN pip install mmpycocotools
+RUN pip install mmpycocotools rasterio
 
 RUN pip install -v -e .
 
