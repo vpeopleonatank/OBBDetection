@@ -65,6 +65,20 @@ def parse_args():
         default='none',
         help='job launcher')
     parser.add_argument('--local_rank', type=int, default=0)
+    parser.add_argument(
+        '--test-ann-file',
+        type=str,
+        help='path to test annotation file')
+    parser.add_argument(
+        '--test-image-prefix',
+        type=str,
+        help='path to test images file')
+    parser.add_argument(
+        '--test-image-scale',
+        type=int,
+        nargs='+',
+        help='test image scale'
+        '--test-image-scale 2048 2048')
     args = parser.parse_args()
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
@@ -106,6 +120,12 @@ def main():
 
     # build the dataloader
     # TODO: support multiple images per gpu (only minor changes are needed)
+    if args.test_ann_file:
+        cfg.data.test.ann_file = args.test_ann_file
+    if args.test_image_prefix:
+        cfg.data.test.img_prefix = args.test_image_prefix
+    if args.test_image_scale:
+        cfg.data.test.img_scale = tuple(args.test_image_scale)
     dataset = build_dataset(cfg.data.test)
     data_loader = build_dataloader(
         dataset,
