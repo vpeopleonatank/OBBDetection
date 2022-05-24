@@ -1,25 +1,66 @@
-from typing import List
-from functools import lru_cache
-import config
-
-from rasterio.io import MemoryFile
+import datetime
+import mmcv
+import numpy as np
+import cv2
+import torch
+import uvicorn
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-import numpy as np
-import uvicorn
-from BboxToolkit import obb2poly
-
-import torch
-import mmcv
+from functools import lru_cache
 from mmcv.parallel import collate, scatter
+from rasterio.io import MemoryFile
+from typing import List
+
+import config
+from BboxToolkit import obb2poly, obb2hbb
 from mmdet.apis import init_detector
-from mmdet.apis.obb.huge_img_inference import (
-    LoadPatch,
-    parse_split_cfg,
-    get_windows,
-    merge_patch_results,
-)
+from mmdet.apis.obb.huge_img_inference import (LoadPatch, get_windows,
+                                               merge_patch_results,
+                                               parse_split_cfg)
 from mmdet.datasets.pipelines import Compose
+
+
+def create_image_info(
+    image_id,
+    file_name,
+    image_size,
+    date_captured=datetime.datetime.utcnow().isoformat(" "),
+    license_id=1,
+    coco_url="",
+    flickr_url="",
+):
+
+    image_info = {
+        "id": image_id,
+        "file_name": file_name,
+        "width": image_size[0],
+        "height": image_size[1],
+        "date_captured": date_captured,
+        "license": license_id,
+        "coco_url": coco_url,
+        "flickr_url": flickr_url,
+    }
+
+    return image_info
+
+
+def create_annotation_info(annotation_id, image_id, category_info, obbox, score):
+
+    hbbox = obb2hbb(obbox).tolist()
+    hbbox = [hbbox[0], hbbox[1], hbbox[2] - hbbox[0], hbbox[3] - hbbox[1]]
+
+    annotation_info = {
+        "id": annotation_id,
+        "image_id": image_id,
+        "category_id": category_info["id"],
+        "iscrowd": 0,
+        "area": hbbox[2] * hbbox[3],
+        "bbox": hbbox,
+        "segmentation": [obb2poly(obbox).tolist()],
+        "score": float(score),
+    }
+
+    return annotation_info
 
 
 def convert_pixel_to_geo(bbox, tf_matrix):
@@ -110,6 +151,13 @@ split_config_3m_dao = parse_split_cfg(settings.split_config_3m_dao)
 split_config_3m_cang = parse_split_cfg(settings.split_config_3m_cang)
 
 
+def load_image_into_numpy_array(data):
+    npimg = np.frombuffer(data, np.uint8)
+    frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+    # cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    return frame
+
+
 def load_content_from_bytes(data):
     with MemoryFile(data) as memfile:
         with memfile.open() as dataset:
@@ -118,6 +166,22 @@ def load_content_from_bytes(data):
             tf_matrix = dataset.transform
 
             return img, tf_matrix
+
+
+def create_category_info(supercategory, id, name):
+    category_info = {"supercategory": supercategory, "id": id, "name": name}
+
+    return category_info
+
+
+meta_info = {
+    "year": 2021,
+    "version": "1.0",
+    "description": "Ship detection",
+    "contributor": "",
+    "url": "via",
+    "date_created": "",
+}
 
 
 def detect_huge_image(model, img, split_cfg, merge_cfg):
@@ -210,12 +274,89 @@ async def upload_file(
                     cls_bboxes, cls_scores = cls_bboxes[:, :-1], cls_bboxes[:, -1]
                     for j in range(len(cls_bboxes)):
                         ann = create_poly_obj_geojson(
-                            cls_bboxes[j],
-                            cls_scores[j],
-                            tf_matrix
+                            cls_bboxes[j], cls_scores[j], tf_matrix
                         )
                         res["features"].append(ann)
                         annotation_id += 1
+
+    except Exception as e:
+        print(e)
+    return res
+
+
+@app.post("/detectship_png")
+async def upload_file(
+    files: List[UploadFile] = File(...),
+    model_type: str = Form(...),
+    area_type: str = Form(...),
+):
+    res = {"info": meta_info, "images": [], "annotations": [], "categories": []}
+
+    # model: DetectorModel
+    if model_type == "0.5m" and area_type == "bien":
+        model = model_05m_bien
+        split_cfg = split_config_05m_bien
+    elif model_type == "0.5m" and area_type == "cang":
+        model = model_05m_cang
+        split_cfg = split_config_05m_cang
+    elif model_type == "0.5m" and area_type == "dao":
+        model = model_05m_dao
+        split_cfg = split_config_05m_dao
+    elif model_type == "3m" and area_type == "bien":
+        model = model_3m_bien
+        split_cfg = split_config_3m_bien
+    elif model_type == "3m" and area_type == "cang":
+        model = model_3m_cang
+        split_cfg = split_config_3m_cang
+    elif model_type == "3m" and area_type == "dao":
+        model = model_3m_dao
+        split_cfg = split_config_3m_dao
+    else:
+        return {
+            "error": "specify model_type: 0.5m or 3m; and area_type: bien or cang or dao"
+        }
+    try:
+        nms_cfg = dict(type="BT_nms", iou_thr=0.5)
+        for i, name in enumerate(CLASSES):
+            res["categories"].append(create_category_info(name, i + 1, name))
+        image_id = 1
+        annotation_id = 1
+        for file in files:
+            img = load_image_into_numpy_array(await file.read())
+            height, width, _ = img.shape
+            # detections = model.inference_single(img, (1024, 1024), (2048, 2048))
+
+            detections = detect_huge_image(model, img, split_cfg, nms_cfg)
+            res["images"].append(
+                create_image_info(image_id, file.filename, (width, height))
+            )
+            if len(detections) != 0:
+                bboxes = np.vstack(detections)
+                labels = [
+                    np.full(bbox.shape[0], i, dtype=np.int32)
+                    for i, bbox in enumerate(detections)
+                ]
+                labels = np.concatenate(labels)
+                bboxes, scores = bboxes[:, :-1], bboxes[:, -1]
+                bboxes = bboxes[scores > settings.score_thr]
+                labels = labels[scores > settings.score_thr]
+                scores = scores[scores > settings.score_thr]
+                bboxes = np.concatenate([bboxes, scores[:, None]], axis=1)
+                bboxes = [bboxes[labels == i] for i in range(labels.max() + 1)]
+                for i, cls_bboxes in enumerate(bboxes):
+                    cls_bboxes, cls_scores = cls_bboxes[:, :-1], cls_bboxes[:, -1]
+                    for j in range(len(cls_bboxes)):
+                        ann = create_annotation_info(
+                            annotation_id,
+                            image_id,
+                            res["categories"][i],
+                            cls_bboxes[j],
+                            cls_scores[j],
+                        )
+                        res["annotations"].append(ann)
+                        annotation_id += 1
+
+            image_id += 1
 
     except Exception as e:
         print(e)
